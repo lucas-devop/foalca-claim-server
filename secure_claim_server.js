@@ -20,6 +20,8 @@ const operatorPrivateKey = process.env.OPERATOR_PRIVATE_KEY;
 if (!operatorPrivateKey) throw new Error("❌ not found OPERATOR_PRIVATE_KEY in .env!");
 
 const wallet = new ethers.Wallet(operatorPrivateKey);
+console.log("🔐 Backend is signing as address:", wallet.address);
+
 
 app.post("/sign", async (req, res) => {
   const { address, amount } = req.body;
