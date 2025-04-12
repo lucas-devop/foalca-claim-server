@@ -7,12 +7,17 @@ const app = express();
 const port = process.env.PORT || 4000;
 
 app.use(cors({
-  origin: ["http://localhost", "http://127.0.0.1", "https://forallcases.com", "https://foalca.com"]
+  origin: [
+    "http://localhost",
+    "http://127.0.0.1",
+    "https://forallcases.com",
+    "https://foalca.com"
+  ]
 }));
 app.use(express.json());
 
 const operatorPrivateKey = process.env.OPERATOR_PRIVATE_KEY;
-if (!operatorPrivateKey) throw new Error("❌ not founded OPERATOR_PRIVATE_KEY in .env!");
+if (!operatorPrivateKey) throw new Error("❌ not found OPERATOR_PRIVATE_KEY in .env!");
 
 const wallet = new ethers.Wallet(operatorPrivateKey);
 
@@ -26,11 +31,11 @@ app.post("/sign", async (req, res) => {
     const amountWei = ethers.parseUnits(amount.toString(), 18);
     const nonce = Date.now();
 
-    const messageHash = ethers.keccak256(
+    const rawMessageHash = ethers.keccak256(
       ethers.solidityPacked(["address", "uint256", "uint256"], [address, amountWei, nonce])
     );
 
-    const signature = await wallet.signMessage(ethers.getBytes(messageHash));
+    const signature = await wallet.signMessage(ethers.getBytes(rawMessageHash));
 
     return res.json({ signature, nonce });
   } catch (err) {
