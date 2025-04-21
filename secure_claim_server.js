@@ -28,8 +28,14 @@ console.log("🔐 Backend is signing as address:", wallet.address);
 app.post("/sign", async (req, res) => {
   const { address, amount } = req.body;
 
-  if (!ethers.isAddress(address)) return res.status(400).json({ error: "Invalid address" });
-  if (!amount || isNaN(amount)) return res.status(400).json({ error: "Invalid amount" });
+  if (!ethers.isAddress(address)) {
+    console.warn("⚠️ Invalid address attempt:", address);
+    return res.status(400).json({ error: "Invalid address" });
+  }
+  if (!amount || isNaN(amount)) {
+    console.warn("⚠️ Invalid amount attempt:", amount);
+    return res.status(400).json({ error: "Invalid amount" });
+  }
 
   try {
     const amountWei = ethers.parseUnits(amount.toString(), 18);
@@ -41,29 +47,35 @@ app.post("/sign", async (req, res) => {
 
     const signature = await wallet.signMessage(ethers.getBytes(rawMessageHash));
 
-    await axios.post(DISCORD_WEBHOOK_URL, {
-      embeds: [
-        {
-          title: `\u2728 Someone just claimed`,
-          description: `Claim has been signed and tokens sent to the wallet!`,
-          color: 0x1abc9c,
-          fields: [
-            { name: "Address", value: address, inline: true },
-            { name: "Amount", value: `${amount} FOALCA`, inline: true },
-            { name: "Nonce", value: nonce.toString(), inline: false }
-          ],
-          timestamp: new Date().toISOString()
-        }
-      ]
-    });
+    res.json({ signature, nonce });
 
-    return res.json({ signature, nonce });
+    try {
+      await axios.post(DISCORD_WEBHOOK_URL, {
+        embeds: [
+          {
+            title: `🎉 Claim Signed Successfully`,
+            description: `A new claim was signed and sent back to client.`,
+            color: 0x1abc9c,
+            fields: [
+              { name: "Address", value: address, inline: true },
+              { name: "Amount", value: `${amount} FOALCA`, inline: true },
+              { name: "Nonce", value: nonce.toString(), inline: false }
+            ],
+            timestamp: new Date().toISOString()
+          }
+        ]
+      });
+      console.log(`✅ Discord log sent for claim: ${address}, amount: ${amount}`);
+    } catch (webhookErr) {
+      console.error("❌ Failed to send Discord webhook:", webhookErr.message);
+    }
+
   } catch (err) {
-    console.error("Signing error:", err);
+    console.error("❌ Signing error:", err);
     res.status(500).json({ error: "Signing failed" });
   }
 });
 
 app.listen(port, () => {
-  console.log(`\u2705 Claim-signing server listening at http://localhost:${port}`);
+  console.log(`✅ Claim-signing server listening at http://localhost:${port}`);
 });
